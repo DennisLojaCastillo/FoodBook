@@ -4,6 +4,9 @@ import cors from 'cors';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
+// Import database
+import database from './config/database.js';
+
 // Import routers
 import authRouter from './routes/authRouter.js';
 import recipeRouter from './routes/recipeRouter.js';
@@ -23,6 +26,33 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 5000;
+
+// Initialize database connection
+async function startServer() {
+  try {
+    // Connect to MongoDB
+    const db = await database.connect();
+    
+    // Make database accessible to routes
+    app.use((req, res, next) => {
+      req.db = db;
+      next();
+    });
+
+    // Setup graceful shutdown
+    database.setupGracefulShutdown();
+
+    // Start server after database connection
+    server.listen(PORT, () => {
+      console.log(`🚀 FoodBook API server running on port ${PORT}`);
+      console.log(`📡 Socket.io enabled on port ${PORT}`);
+    });
+
+  } catch (error) {
+    console.error('❌ Server startup fejl:', error);
+    process.exit(1);
+  }
+}
 
 // CORS configuration
 app.use(cors({
@@ -69,9 +99,7 @@ io.on('connection', (socket) => {
 // Error handling middleware (must be last)
 app.use(errorMiddleware);
 
-server.listen(PORT, () => {
-  console.log(`🚀 FoodBook API server running on port ${PORT}`);
-  console.log(`📡 Socket.io enabled on port ${PORT}`);
-});
+// Start server with database connection
+startServer();
 
 export { app, io }; 
