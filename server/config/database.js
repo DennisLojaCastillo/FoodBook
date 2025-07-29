@@ -8,7 +8,7 @@ class Database {
 
   async connect() {
     try {
-      console.log('🔌 Forbinder til MongoDB Atlas...');
+      console.log('🔌 Connecting to MongoDB Atlas...');
       
       this.client = new MongoClient(process.env.MONGODB_URI);
       await this.client.connect();
@@ -16,15 +16,15 @@ class Database {
       // Brug 'foodbook' som database navn
       this.db = this.client.db('foodbook');
       
-      console.log('✅ MongoDB Atlas forbindelse etableret!');
+      console.log('✅ MongoDB Atlas connection established!');
       
       // Test forbindelsen
       await this.db.admin().ping();
-      console.log('🏓 Database ping succesfil!');
+      console.log('🏓 Database ping successful!');
       
       return this.db;
     } catch (error) {
-      console.error('❌ MongoDB forbindelsesfejl:', error);
+      console.error('❌ MongoDB connection error:', error);
       throw error;
     }
   }
@@ -33,16 +33,16 @@ class Database {
     try {
       if (this.client) {
         await this.client.close();
-        console.log('🔌 MongoDB forbindelse lukket');
+        console.log('🔌 MongoDB connection closed');
       }
     } catch (error) {
-      console.error('❌ Fejl ved lukning af MongoDB forbindelse:', error);
+      console.error('❌ Error closing MongoDB connection:', error);
     }
   }
 
   getDb() {
     if (!this.db) {
-      throw new Error('Database ikke forbundet. Kald connect() først.');
+      throw new Error('Database not connected. Call connect() first.');
     }
     return this.db;
   }
@@ -50,13 +50,13 @@ class Database {
   // Graceful shutdown
   setupGracefulShutdown() {
     process.on('SIGINT', async () => {
-      console.log('\n🔄 Modtog SIGINT. Lukker database forbindelse...');
+      console.log('\n🔄 Received SIGINT. Closing database connection...');
       await this.disconnect();
       process.exit(0);
     });
 
     process.on('SIGTERM', async () => {
-      console.log('\n🔄 Modtog SIGTERM. Lukker database forbindelse...');
+      console.log('\n🔄 Received SIGTERM. Closing database connection...');
       await this.disconnect();
       process.exit(0);
     });
