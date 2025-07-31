@@ -129,13 +129,43 @@ const verifyAdmin = async (req, res, next) => {
     const userModel = new UserModel(req.db);
     const user = await userModel.findUserById(req.userId);
 
-    if (!user || user.role !== 'admin') {
-      return res.status(403).json({
+    if (!user) {
+      return res.status(401).json({
         success: false,
-        message: 'Admin access required'
+        message: 'User not found'
       });
     }
 
+    // Tjek om bruger er slettet eller inaktiv
+    if (user.isDeleted === true) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account has been deleted'
+      });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Account has been blocked'
+      });
+    }
+
+    // Tjek om bruger har admin rolle
+    if (user.role !== 'admin') {
+      console.log(`❌ Non-admin user ${req.userId} attempted admin access: ${req.method} ${req.originalUrl}`);
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required. This incident will be logged.'
+      });
+    }
+
+    // Log admin access for audit trail
+    console.log(`✅ Admin ${req.userId} (${user.username}) accessing: ${req.method} ${req.originalUrl}`);
+
+    // Tilføj user data til request for brug i admin endpoints
+    req.user = user;
+    req.adminUser = user; // Ekstra reference for admin-specific logic
     next();
 
   } catch (error) {

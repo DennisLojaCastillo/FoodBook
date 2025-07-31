@@ -1,6 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { body } from 'express-validator';
+import { ObjectId } from 'mongodb';
 import UserModel from '../models/userModel.js';
 import { verifyToken } from '../middlewares/jwtMiddleware.js';
 import { handleValidationErrors } from '../middlewares/validationMiddleware.js';
@@ -304,6 +305,55 @@ router.put('/profile', verifyToken, [
       });
     }
 
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// GET /api/auth/my-recipes - Hent brugerens egne opskrifter (protected)
+router.get('/my-recipes', verifyToken, async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const recipesCollection = req.db.collection('recipes');
+    const userObjectId = new ObjectId(req.userId);
+
+    // Hent brugerens opskrifter med pagination
+    const recipes = await recipesCollection.find({
+      createdBy: userObjectId
+    })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+
+    // Få total count for pagination
+    const totalRecipes = await recipesCollection.countDocuments({
+      createdBy: userObjectId
+    });
+
+    const totalPages = Math.ceil(totalRecipes / limit);
+
+    res.json({
+      success: true,
+      data: {
+        recipes,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalRecipes,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Get user recipes error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
