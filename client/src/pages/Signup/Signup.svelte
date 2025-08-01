@@ -1,5 +1,6 @@
 <script>
   import { auth } from '../../stores/auth.js';
+  import { notifications } from '../../stores/notifications.js';
   
   let email = '';
   let username = '';
@@ -24,6 +25,12 @@
     
     try {
       await auth.signup(email, username, password);
+      
+      // Vis success notification
+      notifications.success(
+        `Welcome to FoodBook, ${username}! Your account has been created.`,
+        'Account Created'
+      );
       
       // Redirect til /recipes efter succesfuld signup
       window.location.href = '/#/recipes';

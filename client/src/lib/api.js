@@ -197,6 +197,11 @@ class ApiClient {
     });
   }
 
+  // Hent brugerens egne opskrifter
+  async getUserRecipes(page = 1, limit = 10) {
+    return await this.request(`/auth/my-recipes?page=${page}&limit=${limit}`);
+  }
+
   // ======================
   // RECIPE ENDPOINTS
   // ======================

@@ -1,5 +1,6 @@
 <script>
   import { auth } from '../../stores/auth.js';
+  import { notifications } from '../../stores/notifications.js';
   
   let email = '';
   let password = '';
@@ -17,6 +18,12 @@
     
     try {
       await auth.login(email, password);
+      
+      // Vis success notification
+      notifications.success(
+        `Welcome back! You are now logged in.`,
+        'Login Successful'
+      );
       
       // Redirect til /recipes efter succesfuld login
       window.location.href = '/#/recipes';

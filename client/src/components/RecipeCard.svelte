@@ -1,5 +1,10 @@
 <script>
+  import api from '../lib/api.js';
+  import { notifications } from '../stores/notifications.js';
+  
   export let recipe;
+  
+  let favoriteLoading = false;
   
   // Funktion til at truncate description
   function truncateText(text, maxLength = 120) {
@@ -21,6 +26,49 @@
   // Navigate til recipe detail
   function handleClick() {
     window.location.href = `/#/recipe/${recipe._id}`;
+  }
+  
+  // Toggle favorite status
+  async function toggleFavorite(event) {
+    event.stopPropagation(); // Prevent card click
+    
+    if (favoriteLoading) return;
+    
+    try {
+      favoriteLoading = true;
+      
+      // For now, we'll always add to favorites since we don't track user's favorite status per card
+      // This could be enhanced to track actual favorite status if needed
+      await api.addToFavorites(recipe._id);
+      
+      // Update local count optimistically  
+      recipe.favoriteCount = (recipe.favoriteCount || 0) + 1;
+      
+      notifications.success(
+        'Recipe added to your favorites',
+        'Added to Favorites'
+      );
+      
+    } catch (err) {
+      console.error('Failed to add to favorites:', err);
+      
+      // Revert optimistic update
+      recipe.favoriteCount = Math.max(0, (recipe.favoriteCount || 1) - 1);
+      
+      if (err.message?.includes('already in favorites')) {
+        notifications.info(
+          'This recipe is already in your favorites',
+          'Already Favorited'
+        );
+      } else {
+        notifications.error(
+          'Failed to add to favorites. Please try again.',
+          'Error'
+        );
+      }
+    } finally {
+      favoriteLoading = false;
+    }
   }
 </script>
 
@@ -78,10 +126,15 @@
     <!-- Footer with stats -->
     <div class="flex items-center justify-between pt-4 border-t border-gray-100">
       <!-- Favorites -->
-      <div class="flex items-center text-red-500">
-        <span class="mr-1">❤️</span>
+      <button 
+        on:click={toggleFavorite}
+        disabled={favoriteLoading}
+        class="flex items-center text-red-500 hover:text-red-600 transition-colors disabled:opacity-50 p-1 -m-1 rounded"
+        title="Add to favorites"
+      >
+        <span class="mr-1">{favoriteLoading ? '⏳' : '❤️'}</span>
         <span class="text-sm font-medium">{recipe.favoriteCount || 0}</span>
-      </div>
+      </button>
       
       <!-- Ingredients count -->
       <div class="flex items-center text-green-600">

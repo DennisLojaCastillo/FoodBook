@@ -1,5 +1,6 @@
 <script>
   import { auth } from '../stores/auth.js';
+  import { notifications } from '../stores/notifications.js';
   
   export let user;
   
@@ -17,9 +18,20 @@
   async function handleLogout() {
     try {
       await auth.logout();
+      
+      // Vis logout notification
+      notifications.info(
+        'You have been successfully logged out',
+        'Logged Out'
+      );
+      
       window.location.href = '/';
     } catch (error) {
       console.error('Logout error:', error);
+      notifications.error(
+        'Failed to log out. Please try again.',
+        'Logout Error'
+      );
     }
     isOpen = false;
   }
