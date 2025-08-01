@@ -253,7 +253,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/recipes - Opret ny opskrift med image upload (protected)
-router.post('/', verifyToken, uploadRecipeImage, handleUploadError, recipeValidation, handleValidationErrors, async (req, res) => {
+router.post('/', verifyToken, uploadRecipeImage, handleUploadError, async (req, res) => {
   try {
     // Håndter uploaded image
     let thumbnailUrl = null;
@@ -275,11 +275,60 @@ router.post('/', verifyToken, uploadRecipeImage, handleUploadError, recipeValida
       nutrition
     } = req.body;
     
+    // Manual validation AFTER multer parsing
+    if (!title || typeof title !== 'string' || title.trim().length < 2 || title.trim().length > 200) {
+      return res.status(400).json({
+        success: false,
+        message: 'Recipe title must be between 2 and 200 characters'
+      });
+    }
+    
+    if (!description || typeof description !== 'string' || description.trim().length < 10 || description.trim().length > 1000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Recipe description must be between 10 and 1000 characters'
+      });
+    }
+    
+    // Validate ingredients (can be string from FormData or array from JSON)
+    let parsedIngredients;
+    try {
+      parsedIngredients = typeof ingredients === 'string' ? JSON.parse(ingredients) : ingredients;
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ingredients must be a valid JSON array'
+      });
+    }
+    
+    if (!Array.isArray(parsedIngredients) || parsedIngredients.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Recipe must have at least one ingredient'
+      });
+    }
+    
+    // Validate instructions (can be string from FormData or array from JSON)
+    let parsedInstructions;
+    try {
+      parsedInstructions = typeof instructions === 'string' ? JSON.parse(instructions) : instructions;
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: 'Instructions must be a valid JSON array'
+      });
+    }
+    
+    if (!Array.isArray(parsedInstructions) || parsedInstructions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Recipe must have at least one instruction'
+      });
+    }
+    
     const createdBy = req.userId; // Fra JWT middleware
     
-    // Parse JSON strings hvis de kommer fra multipart form data
-    const parsedIngredients = typeof ingredients === 'string' ? JSON.parse(ingredients) : ingredients;
-    const parsedInstructions = typeof instructions === 'string' ? JSON.parse(instructions) : instructions;
+    // Parse JSON strings for tags and nutrition (ingredients and instructions already parsed above)
     const parsedTags = typeof tags === 'string' ? JSON.parse(tags) : tags;
     const parsedNutrition = typeof nutrition === 'string' ? JSON.parse(nutrition) : nutrition;
     

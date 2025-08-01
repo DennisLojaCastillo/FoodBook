@@ -17,8 +17,7 @@
   }
   
   function navigateToCreateRecipe() {
-    // TODO: Implementer navigation til /create-recipe
-    console.log('Navigate to Create Recipe');
+    window.location.href = '/#/create-recipe';
   }
 </script>
 

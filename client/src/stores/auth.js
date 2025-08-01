@@ -55,7 +55,6 @@ function createAuthStore() {
           error: null
         });
         
-        console.log('Auth store: User logged in successfully');
         return response;
         
       } catch (error) {
@@ -83,7 +82,6 @@ function createAuthStore() {
           error: null
         });
         
-        console.log('Auth store: User signed up successfully');
         return response;
         
       } catch (error) {
@@ -112,7 +110,6 @@ function createAuthStore() {
           isLoading: false,
           error: null
         });
-        console.log('Auth store: User logged out');
       }
     },
     

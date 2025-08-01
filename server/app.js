@@ -39,9 +39,15 @@ app.use(cors({
   credentials: true
 }));
 
-// Global middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Global middleware - only parse JSON for application/json content-type
+app.use(express.json({ 
+  limit: '10mb',
+  type: 'application/json' // Only parse requests with Content-Type: application/json
+}));
+app.use(express.urlencoded({ 
+  extended: true,
+  type: 'application/x-www-form-urlencoded' // Only parse URL-encoded data, not multipart
+}));
 app.use(apiLimit);
 
 // Make io accessible to routes

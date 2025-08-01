@@ -23,10 +23,19 @@ class ApiClient {
   }
 
   // Hent authorization headers
-  getAuthHeaders() {
-    const headers = {
-      'Content-Type': 'application/json',
-    };
+  getAuthHeaders(includeContentType = true) {
+    const headers = {};
+    
+    // Force sync tokens from localStorage if missing
+    if (!this.accessToken) {
+      this.accessToken = localStorage.getItem('accessToken');
+      this.refreshToken = localStorage.getItem('refreshToken');
+    }
+    
+    // Only add Content-Type for JSON requests, not for FormData
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
     
     if (this.accessToken) {
       headers.Authorization = `Bearer ${this.accessToken}`;
@@ -104,7 +113,7 @@ class ApiClient {
 
       if (response.ok) {
         const data = await response.json();
-        this.setTokens(data.accessToken, data.refreshToken || this.refreshToken);
+        this.setTokens(data.data.accessToken, data.data.refreshToken || this.refreshToken);
         return true;
       } else {
         // Refresh token er invalid, log brugeren ud
@@ -130,8 +139,8 @@ class ApiClient {
     });
     
     // Gem tokens efter successfuldt login
-    if (data.accessToken && data.refreshToken) {
-      this.setTokens(data.accessToken, data.refreshToken);
+    if (data.data && data.data.accessToken && data.data.refreshToken) {
+      this.setTokens(data.data.accessToken, data.data.refreshToken);
     }
     
     return data;
@@ -145,8 +154,8 @@ class ApiClient {
     });
     
     // Gem tokens efter successfuldt signup
-    if (data.accessToken && data.refreshToken) {
-      this.setTokens(data.accessToken, data.refreshToken);
+    if (data.data && data.data.accessToken && data.data.refreshToken) {
+      this.setTokens(data.data.accessToken, data.data.refreshToken);
     }
     
     return data;
@@ -202,12 +211,46 @@ class ApiClient {
     return await this.request(`/recipes/${id}`);
   }
 
-  // Opret ny opskrift
+  // Opret ny opskrift (med file upload support)
   async createRecipe(recipeData) {
-    return await this.request('/recipes', {
-      method: 'POST',
-      body: JSON.stringify(recipeData),
-    });
+    // Check if there's a file to upload
+    if (recipeData.thumbnail instanceof File) {
+      // Use FormData for multipart upload
+      const formData = new FormData();
+      
+      // Add file
+      formData.append('thumbnail', recipeData.thumbnail);
+      
+      // Add other fields (arrays need to be JSON stringified for multipart)
+      formData.append('title', recipeData.title);
+      formData.append('description', recipeData.description);
+      formData.append('ingredients', JSON.stringify(recipeData.ingredients));
+      formData.append('instructions', JSON.stringify(recipeData.instructions));
+      
+      // Optional fields
+      if (recipeData.servings) formData.append('servings', recipeData.servings.toString());
+      if (recipeData.totalTimeCookingMinutes) formData.append('totalTimeCookingMinutes', recipeData.totalTimeCookingMinutes.toString());
+      if (recipeData.tags && recipeData.tags.length > 0) formData.append('tags', JSON.stringify(recipeData.tags));
+      if (recipeData.videoUrl) formData.append('videoUrl', recipeData.videoUrl);
+      if (recipeData.nutrition) formData.append('nutrition', JSON.stringify(recipeData.nutrition));
+      
+      // Make request with FormData (don't set Content-Type, browser will set it with boundary)
+      const response = await fetch(`${this.baseURL}/recipes`, {
+        method: 'POST',
+        headers: {
+          ...this.getAuthHeaders(false), // Don't include Content-Type for FormData
+        },
+        body: formData,
+      });
+      
+      return await this.handleResponse(response);
+    } else {
+      // No file upload, use regular JSON
+      return await this.request('/recipes', {
+        method: 'POST',
+        body: JSON.stringify(recipeData),
+      });
+    }
   }
 
   // Opdater opskrift
