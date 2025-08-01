@@ -25,7 +25,14 @@
   
   // Navigate til recipe detail
   function handleClick() {
-    window.location.href = `/#/recipe/${recipe._id}`;
+    // Check if it's an external recipe
+    if (recipe.externalId && recipe.source === 'tasty') {
+      // External recipe - navigate to external route
+      window.location.href = `/#/recipe/external/${recipe.externalId}`;
+    } else {
+      // Local recipe - navigate to normal route  
+      window.location.href = `/#/recipe/${recipe._id}`;
+    }
   }
   
   // Toggle favorite status
@@ -114,33 +121,52 @@
     
     <!-- Recipe Meta Info -->
     <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
-      <!-- Author -->
+      <!-- Author/Source -->
       <div class="flex items-center">
-        <span class="font-medium">👨‍🍳 {recipe.author?.username || 'Unknown chef'}</span>
+        {#if recipe.externalId && recipe.source === 'tasty'}
+          <span class="font-medium">🌐 {recipe.source || 'External'}</span>
+        {:else}
+          <span class="font-medium">👨‍🍳 {recipe.author?.username || 'Unknown chef'}</span>
+        {/if}
       </div>
       
-      <!-- Date -->
-      <span>{formatDate(recipe.createdAt)}</span>
+      <!-- Date/Badge -->
+      {#if recipe.externalId && recipe.source === 'tasty'}
+        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800">
+          EXTERNAL
+        </span>
+      {:else}
+        <span>{formatDate(recipe.createdAt)}</span>
+      {/if}
     </div>
     
     <!-- Footer with stats -->
     <div class="flex items-center justify-between pt-4 border-t border-gray-100">
-      <!-- Favorites -->
-      <button 
-        on:click={toggleFavorite}
-        disabled={favoriteLoading}
-        class="flex items-center text-red-500 hover:text-red-600 transition-colors disabled:opacity-50 p-1 -m-1 rounded"
-        title="Add to favorites"
-      >
-        <span class="mr-1">{favoriteLoading ? '⏳' : '❤️'}</span>
-        <span class="text-sm font-medium">{recipe.favoriteCount || 0}</span>
-      </button>
+      <!-- Favorites (only for local recipes) -->
+      {#if !(recipe.externalId && recipe.source === 'tasty')}
+        <button 
+          on:click={toggleFavorite}
+          disabled={favoriteLoading}
+          class="flex items-center text-red-500 hover:text-red-600 transition-colors disabled:opacity-50 p-1 -m-1 rounded"
+          title="Add to favorites"
+        >
+          <span class="mr-1">{favoriteLoading ? '⏳' : '❤️'}</span>
+          <span class="text-sm font-medium">{recipe.favoriteCount || 0}</span>
+        </button>
+      {:else}
+        <div class="flex items-center text-green-600">
+          <span class="mr-1">⭐</span>
+          <span class="text-sm font-medium">External Recipe</span>
+        </div>
+      {/if}
       
-      <!-- Ingredients count -->
-      <div class="flex items-center text-green-600">
-        <span class="mr-1">🥬</span>
-        <span class="text-sm">{recipe.ingredients?.length || 0} ingredients</span>
-      </div>
+      <!-- Ingredients count (only for local recipes) -->
+      {#if !(recipe.externalId && recipe.source === 'tasty')}
+        <div class="flex items-center text-green-600">
+          <span class="mr-1">🥬</span>
+          <span class="text-sm">{recipe.ingredients?.length || 0} ingredients</span>
+        </div>
+      {/if}
       
       <!-- View Recipe -->
       <div class="text-blue-600 font-medium text-sm group-hover:text-blue-700">

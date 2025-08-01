@@ -2,12 +2,14 @@
   import { onMount } from 'svelte';
   import api from '../../lib/api.js';
   import { notifications } from '../../stores/notifications.js';
+  import { auth } from '../../stores/auth.js';
   
   export let params = {}; // Router sends recipe ID here
   
   let recipe = null;
   let loading = true;
   let error = null;
+  let isExternalRecipe = false;
   
   // Favorite functionality
   let isFavorite = false;
@@ -20,11 +22,16 @@
   let newComment = '';
   let commentLoading = false;
   let commentsSection;
-  
+
   onMount(async () => {
     if (params.id) {
+      isExternalRecipe = params.isExternal || false;
       await loadRecipe(params.id);
-      await loadComments();
+      
+      // Load comments only for local recipes, but check favorites for both
+      if (!isExternalRecipe) {
+        await loadComments();
+      }
       await checkFavoriteStatus();
     } else {
       error = 'No recipe ID provided';
@@ -37,16 +44,22 @@
       loading = true;
       error = null;
       
-      const response = await api.getRecipe(id);
-      recipe = response.data?.recipe || response.recipe;
+      let response;
+      if (isExternalRecipe) {
+        response = await api.getExternalRecipe(id);
+        recipe = response.data?.recipe || response.recipe;
+      } else {
+        response = await api.getRecipe(id);
+        recipe = response.data?.recipe || response.recipe;
+      }
       
       if (!recipe) {
-        error = 'Recipe not found';
+        error = isExternalRecipe ? 'External recipe not found' : 'Recipe not found';
       }
       
     } catch (err) {
       console.error('Failed to load recipe:', err);
-      error = err.message || 'Failed to load recipe';
+      error = err.message || (isExternalRecipe ? 'Failed to load external recipe' : 'Failed to load recipe');
     } finally {
       loading = false;
     }
@@ -101,9 +114,17 @@
       const allFavorites = [...localFavorites, ...externalFavorites];
       
       // Check if current recipe ID exists in favorites
-      isFavorite = allFavorites.some(fav => 
-        fav._id === params.id || fav.externalId === params.id
-      );
+      if (isExternalRecipe) {
+        // For external recipes, compare externalId (convert to numbers for comparison)
+        isFavorite = externalFavorites.some(fav => 
+          parseInt(fav.externalId) === parseInt(params.id)
+        );
+      } else {
+        // For local recipes, compare _id
+        isFavorite = localFavorites.some(fav => 
+          fav._id === params.id
+        );
+      }
       
     } catch (err) {
       console.error('Failed to check favorite status:', err);
@@ -143,6 +164,127 @@
       );
     } finally {
       commentLoading = false;
+    }
+  }
+  
+  // Delete a comment (kun ejeren eller admin)
+  async function handleDeleteComment(commentId, commentAuthorId) {
+    if (!confirm('Are you sure you want to delete this comment?')) {
+      return;
+    }
+    
+    try {
+      const response = await api.deleteComment(commentId);
+      
+      if (response.success) {
+        // Remove comment from the list
+        comments = comments.filter(comment => comment._id !== commentId);
+        
+        notifications.success(
+          'Comment deleted successfully',
+          'Comment Deleted'
+        );
+      }
+      
+    } catch (err) {
+      console.error('Failed to delete comment:', err);
+      
+      if (err.message?.includes('not found or access denied')) {
+        notifications.error(
+          'You can only delete your own comments',
+          'Access Denied'
+        );
+      } else {
+        notifications.error(
+          err.message || 'Failed to delete comment. Please try again.',
+          'Error Deleting Comment'
+        );
+      }
+    }
+  }
+  
+    // Check if current user can delete a comment (owner or admin)  
+  function canDeleteComment(commentAuthorId) {
+    const currentUser = $auth.user;
+    if (!currentUser) return false;
+    
+    // User can delete their own comments
+    if (currentUser._id === commentAuthorId) return true;
+    
+    // Admin can delete any comment  
+    if (currentUser.role === 'admin') return true;
+    
+    return false;
+  }
+  
+  // Toggle external recipe favorite status
+  async function toggleExternalFavorite() {
+    if (!recipe) return;
+    
+    try {
+      favoriteLoading = true;
+      
+      if (isFavorite) {
+        // Remove from favorites
+        const externalId = recipe.externalId || params.id;
+        await api.removeExternalFavorite(externalId);
+        
+        // Update UI optimistically
+        isFavorite = false;
+        
+        notifications.success(
+          `"${recipe.title}" removed from your favorites`,
+          'Removed from Favorites'
+        );
+        
+      } else {
+        // Add to favorites
+        const favoriteData = {
+          externalId: recipe.externalId || params.id,
+          title: recipe.title,
+          thumbnail: recipe.thumbnail,
+          source: recipe.source || 'tasty',
+          description: recipe.description,
+          ingredients: recipe.ingredients || [],
+          servings: recipe.servings,
+          totalTimeCookingMinutes: recipe.totalTimeCookingMinutes
+        };
+        
+        await api.saveExternalFavorite(favoriteData);
+        
+        // Update UI optimistically
+        isFavorite = true;
+        
+        notifications.success(
+          `"${recipe.title}" added to your favorites`,
+          'Added to Favorites'
+        );
+      }
+      
+    } catch (err) {
+      console.error('Failed to toggle external favorite:', err);
+      
+      // Revert optimistic update on error
+      isFavorite = !isFavorite;
+      
+      if (err.message?.includes('already in favorites')) {
+        notifications.info(
+          'This recipe is already in your favorites',
+          'Already Saved'
+        );
+      } else if (err.message?.includes('not found')) {
+        notifications.info(
+          'This recipe was not in your favorites',
+          'Not Found'
+        );
+      } else {
+        notifications.error(
+          err.message || 'Failed to update favorites',
+          'Error'
+        );
+      }
+    } finally {
+      favoriteLoading = false;
     }
   }
   
@@ -257,21 +399,39 @@
     <article class="bg-white rounded-lg shadow-lg overflow-hidden">
       <!-- Recipe Header -->
       <div class="p-8 border-b border-gray-200">
-        <h1 class="text-3xl font-bold text-gray-900 mb-4">{recipe.title}</h1>
+        <div class="flex items-start justify-between mb-4">
+          <h1 class="text-3xl font-bold text-gray-900 flex-1">{recipe.title}</h1>
+          
+          {#if isExternalRecipe}
+            <div class="ml-4 flex-shrink-0">
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-800">
+                <span class="mr-1">🌍</span>
+                EXTERNAL RECIPE
+              </span>
+            </div>
+          {/if}
+        </div>
         
         <p class="text-gray-600 text-lg leading-relaxed mb-6">{recipe.description}</p>
         
         <!-- Recipe Meta -->
         <div class="flex flex-wrap items-center gap-6 text-sm text-gray-500">
-          <div class="flex items-center">
-            <span class="mr-2">👨‍🍳</span>
-            <span class="font-medium">{recipe.author?.username || 'Unknown chef'}</span>
-          </div>
-          
-          <div class="flex items-center">
-            <span class="mr-2">📅</span>
-            <span>{formatDate(recipe.createdAt)}</span>
-          </div>
+          {#if !isExternalRecipe}
+            <div class="flex items-center">
+              <span class="mr-2">👨‍🍳</span>
+              <span class="font-medium">{recipe.author?.username || 'Unknown chef'}</span>
+            </div>
+            
+            <div class="flex items-center">
+              <span class="mr-2">📅</span>
+              <span>{formatDate(recipe.createdAt)}</span>
+            </div>
+          {:else}
+            <div class="flex items-center">
+              <span class="mr-2">🌐</span>
+              <span class="font-medium">Source: {recipe.source || 'Tasty'}</span>
+            </div>
+          {/if}
           
           {#if recipe.servings}
             <div class="flex items-center">
@@ -287,10 +447,12 @@
             </div>
           {/if}
           
-          <div class="flex items-center">
-            <span class="mr-2">❤️</span>
-            <span>{recipe.favoriteCount || 0} favorites</span>
-          </div>
+          {#if !isExternalRecipe}
+            <div class="flex items-center">
+              <span class="mr-2">❤️</span>
+              <span>{recipe.favoriteCount || 0} favorites</span>
+            </div>
+          {/if}
         </div>
         
         <!-- Tags -->
@@ -409,8 +571,15 @@
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {#each Object.entries(recipe.nutrition) as [key, value]}
                   <div class="text-center">
-                    <div class="text-lg font-semibold text-gray-900">{value}</div>
-                    <div class="text-sm text-gray-600 capitalize">{key}</div>
+                    {#if key.toLowerCase().includes('updated') || key.toLowerCase().includes('date')}
+                      <!-- Make date/timestamp text smaller and readable -->
+                      <div class="text-xs text-gray-600">{formatDate(value)}</div>
+                      <div class="text-xs text-gray-500 capitalize mt-1">{key}</div>
+                    {:else}
+                      <!-- Normal nutrition values -->
+                      <div class="text-lg font-semibold text-gray-900">{value}</div>
+                      <div class="text-sm text-gray-600 capitalize">{key}</div>
+                    {/if}
                   </div>
                 {/each}
               </div>
@@ -421,31 +590,60 @@
         <!-- Action Buttons -->
         <div class="mt-12 pt-8 border-t border-gray-200">
           <div class="flex flex-wrap gap-4 justify-center">
-            <button 
-              on:click={toggleFavorite}
-              disabled={favoriteLoading}
-              class="px-6 py-3 {isFavorite ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-500 hover:bg-gray-600'} text-white rounded-lg transition-colors flex items-center disabled:opacity-50"
-            >
-              <span class="mr-2">{isFavorite ? '❤️' : '🤍'}</span>
-              {favoriteLoading ? 'Loading...' : (isFavorite ? 'Remove from Favorites' : 'Save as Favorite')}
-            </button>
             
-            <button 
-              on:click={scrollToComments}
-              class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-            >
-              <span class="mr-2">💬</span>
-              View Comments ({comments.length})
-            </button>
+            {#if isExternalRecipe}
+              <!-- External Recipe Actions -->
+              <button 
+                on:click={toggleExternalFavorite}
+                disabled={favoriteLoading}
+                class="px-6 py-3 {isFavorite ? 'bg-red-500 hover:bg-red-600' : 'bg-green-600 hover:bg-green-700'} text-white rounded-lg transition-colors flex items-center disabled:opacity-50"
+              >
+                <span class="mr-2">{isFavorite ? '❤️' : '⭐'}</span>
+                {favoriteLoading ? 'Loading...' : (isFavorite ? 'Remove from Favorites' : 'Save to Favorites')}
+              </button>
+              
+              {#if recipe.originalUrl}
+                <a
+                  href={recipe.originalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center"
+                >
+                  <span class="mr-2">🔗</span>
+                  View Original Recipe
+                </a>
+              {/if}
+              
+            {:else}
+              <!-- Local Recipe Actions -->
+              <button 
+                on:click={toggleFavorite}
+                disabled={favoriteLoading}
+                class="px-6 py-3 {isFavorite ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-500 hover:bg-gray-600'} text-white rounded-lg transition-colors flex items-center disabled:opacity-50"
+              >
+                <span class="mr-2">{isFavorite ? '❤️' : '🤍'}</span>
+                {favoriteLoading ? 'Loading...' : (isFavorite ? 'Remove from Favorites' : 'Save as Favorite')}
+              </button>
+              
+              <button 
+                on:click={scrollToComments}
+                class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <span class="mr-2">💬</span>
+                View Comments ({comments.length})
+              </button>
+            {/if}
+            
           </div>
         </div>
         
-        <!-- Comments Section -->
-        <div class="mt-12 pt-8 border-t border-gray-200" bind:this={commentsSection}>
-          <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-            <span class="mr-2">💬</span>
-            Comments ({comments.length})
-          </h2>
+        <!-- Comments Section (only for local recipes) -->
+        {#if !isExternalRecipe}
+          <div class="mt-12 pt-8 border-t border-gray-200" bind:this={commentsSection}>
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
+              <span class="mr-2">💬</span>
+              Comments ({comments.length})
+            </h2>
           
           <!-- Add Comment Form -->
           <div class="mb-8">
@@ -507,8 +705,19 @@
           {:else}
             <div class="space-y-4">
               {#each comments as comment (comment._id)}
-                <div class="bg-white rounded-lg p-4 border hover:border-gray-300 transition-colors">
-                  <div class="flex items-start gap-3">
+                <div class="bg-white rounded-lg p-4 border hover:border-gray-300 transition-colors relative">
+                  <!-- Delete X button (kun for comment owner eller admin) - oppe i hjørnet -->
+                  {#if canDeleteComment(comment.author?._id)}
+                    <button
+                      on:click={() => handleDeleteComment(comment._id, comment.author?._id)}
+                      class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors text-sm"
+                      title="Delete comment"
+                    >
+                      ✕
+                    </button>
+                  {/if}
+                  
+                  <div class="flex items-start gap-3 pr-8">
                     <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                       <span class="text-sm font-semibold text-blue-600">
                         {comment.author?.username?.charAt(0).toUpperCase() || '?'}
@@ -535,7 +744,8 @@
             </div>
           {/if}
         </div>
-      </div>
+      {/if}
+    </div>
     </article>
   {/if}
 </div> 

@@ -206,7 +206,7 @@ class ApiClient {
   // RECIPE ENDPOINTS
   // ======================
 
-  // Hent alle opskrifter
+  // Hent alle opskrifter (med pagination)
   async getRecipes(page = 1, limit = 10) {
     return await this.request(`/recipes?page=${page}&limit=${limit}`);
   }
@@ -300,13 +300,66 @@ class ApiClient {
     });
   }
 
+  // Slet kommentar (kun ejeren)
+  async deleteComment(commentId) {
+    return await this.request(`/recipes/comments/${commentId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // ======================
   // SEARCH ENDPOINTS
   // ======================
 
-  // Søg opskrifter (Tasty API)
-  async searchRecipes(query) {
-    return await this.request(`/search?q=${encodeURIComponent(query)}`);
+  // Søg eksterne opskrifter (Tasty API)
+  async searchExternalRecipes(query, from = 0, size = 20) {
+    const params = new URLSearchParams({
+      q: query,
+      from: from.toString(),
+      size: size.toString()
+    });
+    return await this.request(`/search?${params}`);
+  }
+
+  // Søg lokale opskrifter
+  async searchLocalRecipes(query, page = 1, limit = 12) {
+    const params = new URLSearchParams({
+      q: query,
+      page: page.toString(),
+      limit: limit.toString()
+    });
+    return await this.request(`/recipes/search?${params}`);
+  }
+
+  // Kombineret søgning (lokale + externe)
+  async searchAllRecipes(query) {
+    try {
+      // Parallel søgning i both local og external
+      const [localResults, externalResults] = await Promise.allSettled([
+        this.searchLocalRecipes(query, 1, 12), // Local search via /recipes/search
+        this.searchExternalRecipes(query, 0, 12) // External search via /search
+      ]);
+
+      return {
+        success: true,
+        data: {
+          localRecipes: localResults.status === 'fulfilled' ? 
+            localResults.value.data?.recipes || [] : [],
+          externalRecipes: externalResults.status === 'fulfilled' ? 
+            externalResults.value.data?.recipes || [] : [],
+          localError: localResults.status === 'rejected' ? localResults.reason : null,
+          externalError: externalResults.status === 'rejected' ? externalResults.reason : null
+        }
+      };
+    } catch (error) {
+      console.error('Search all recipes error:', error);
+      throw error;
+    }
+  }
+
+  // Hent detaljer for ekstern opskrift
+  async getExternalRecipe(externalId) {
+    return await this.request(`/external/recipe/${externalId}`);
   }
 
   // Gem ekstern opskrift som favorit

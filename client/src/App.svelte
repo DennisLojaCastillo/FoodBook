@@ -47,6 +47,7 @@
       '/': () => allowPublic(Home),
       '/recipes': () => allowPublic(Recipes),
       '/recipe/:id': () => allowPublic(RecipeDetail, params),
+      '/recipe/external/:id': () => allowPublic(RecipeDetail, { ...params, isExternal: true }),
       '/login': () => requireGuest(Login),
       '/signup': () => requireGuest(Signup),
       '/dashboard': () => requireAuth(Dashboard),
@@ -54,7 +55,9 @@
     };
     
     // Find matching route og kald dens guard
-    const routeHandler = routes[route] || routes['/recipe/:id'];
+    const routeHandler = routes[route] || 
+      (route.startsWith('/recipe/external/') ? routes['/recipe/external/:id'] : null) ||
+      (route.startsWith('/recipe/') ? routes['/recipe/:id'] : null);
     if (routeHandler) {
       routeHandler();
     }
@@ -126,6 +129,9 @@
       })
       .on('/recipe/:id', (match) => {
         evaluateRoute('/recipe/:id', { id: match.data.id });
+      })
+      .on('/recipe/external/:id', (match) => {
+        evaluateRoute('/recipe/external/:id', { id: match.data.id, isExternal: true });
       })
       
       // Guest-only routes - kun for ikke-logged-in brugere

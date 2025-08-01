@@ -18,17 +18,21 @@ class ExternalFavoriteModel {
     try {
       const favorite = {
         userId,
-        externalId: recipeData.externalId,
+        externalId: parseInt(recipeData.externalId), // Ensure consistent number format
         title: recipeData.title,
         thumbnail: recipeData.thumbnail,
         source: recipeData.source,
+        description: recipeData.description || 'No description available',
+        ingredients: recipeData.ingredients || [],
+        servings: recipeData.servings || null,
+        totalTimeCookingMinutes: recipeData.totalTimeCookingMinutes || null,
         savedAt: new Date()
       };
 
-      // Tjek om allerede gemt
+      // Tjek om allerede gemt - ensure consistent number format
       const existing = await this.collection.findOne({
         userId,
-        externalId: recipeData.externalId
+        externalId: parseInt(recipeData.externalId)
       });
 
       if (existing) {
@@ -48,7 +52,7 @@ class ExternalFavoriteModel {
     try {
       const result = await this.collection.deleteOne({
         userId,
-        externalId
+        externalId: parseInt(externalId) // Convert to number to match database format
       });
 
       if (result.deletedCount === 0) {
@@ -235,26 +239,70 @@ router.post('/external/favorite', verifyToken, [
   
   body('thumbnail')
     .optional()
-    .isURL()
-    .withMessage('Thumbnail must be a valid URL'),
+    .custom((value) => {
+      if (!value || value === null || value === '') return true; // Allow null/empty
+      // Check if it's a valid URL
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        throw new Error('Thumbnail must be a valid URL');
+      }
+    }),
   
   body('source')
     .equals('tasty')
-    .withMessage('Source must be tasty')
+    .withMessage('Source must be tasty'),
+    
+  body('description')
+    .optional()
+    .isString()
+    .withMessage('Description must be a string'),
+    
+  body('ingredients')
+    .optional()
+    .isArray()
+    .withMessage('Ingredients must be an array'),
+    
+  body('servings')
+    .optional()
+    .custom((value) => {
+      if (!value || value === null) return true; // Allow null
+      const parsed = parseInt(value);
+      if (isNaN(parsed) || parsed < 1) {
+        throw new Error('Servings must be a positive integer');
+      }
+      return true;
+    }),
+    
+  body('totalTimeCookingMinutes')
+    .optional()
+    .custom((value) => {
+      if (!value || value === null) return true; // Allow null
+      const parsed = parseInt(value);
+      if (isNaN(parsed) || parsed < 1) {
+        throw new Error('Cooking time must be a positive integer');
+      }
+      return true;
+    })
 ], handleValidationErrors, async (req, res) => {
   try {
-    const { externalId, title, thumbnail, source } = req.body;
+    const { externalId, title, thumbnail, source, description, ingredients, servings, totalTimeCookingMinutes } = req.body;
     const userId = req.userId;
 
     const externalFavoriteModel = new ExternalFavoriteModel(req.db);
     const userModel = new UserModel(req.db);
 
-    // Gem ekstern favorit
+    // Gem ekstern favorit med fuld data
     const favorite = await externalFavoriteModel.saveExternalFavorite(userId, {
       externalId,
       title,
       thumbnail,
-      source
+      source,
+      description,
+      ingredients,
+      servings,
+      totalTimeCookingMinutes
     });
 
     // Tilføj til brugerens favoritter (external format)

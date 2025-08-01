@@ -198,14 +198,21 @@ class UserModel {
       // Hent lokale favorit opskrifter (populate favorites array)
       let localFavorites = [];
       if (user.favorites && user.favorites.length > 0) {
-        // Konverter favorites til ObjectIds
-        const favoriteIds = user.favorites.map(id => 
-          typeof id === 'string' ? new ObjectId(id) : id
+        // Filtrer kun lokale favorites (ikke external_xxx format)
+        const localFavoriteIds = user.favorites.filter(id => 
+          !String(id).startsWith('external_')
         );
         
-        localFavorites = await recipesCollection.find({
-          _id: { $in: favoriteIds }
-        }).toArray();
+        if (localFavoriteIds.length > 0) {
+          // Konverter lokale favorites til ObjectIds
+          const favoriteObjectIds = localFavoriteIds.map(id => 
+            typeof id === 'string' ? new ObjectId(id) : id
+          );
+          
+          localFavorites = await recipesCollection.find({
+            _id: { $in: favoriteObjectIds }
+          }).toArray();
+        }
       }
 
       // Hent eksterne favorit opskrifter

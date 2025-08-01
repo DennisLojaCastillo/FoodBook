@@ -24,6 +24,18 @@
   
   onMount(async () => {
     await loadDashboardData();
+    
+    // Listen for edit profile event from UserMenu
+    const handleEditProfileEvent = () => {
+      showEditModal = true;
+    };
+    
+    window.addEventListener('open-edit-profile', handleEditProfileEvent);
+    
+    // Cleanup on component destroy
+    return () => {
+      window.removeEventListener('open-edit-profile', handleEditProfileEvent);
+    };
   });
   
   async function loadDashboardData() {
@@ -163,12 +175,6 @@
             class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
           >
             Create New Recipe
-          </button>
-          <button 
-            on:click={openEditModal}
-            class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-          >
-            Edit Profile
           </button>
         </div>
       </div>
