@@ -17,6 +17,7 @@
   import Recipes from './pages/Recipes/Recipes.svelte';
   import CreateRecipe from './pages/CreateRecipe/CreateRecipe.svelte';
   import RecipeDetail from './pages/RecipeDetail/RecipeDetail.svelte';
+  import AdminPanel from './pages/AdminPanel/AdminPanel.svelte';
   
   let currentComponent = Home;
   let currentParams = {};
@@ -51,7 +52,8 @@
       '/login': () => requireGuest(Login),
       '/signup': () => requireGuest(Signup),
       '/dashboard': () => requireAuth(Dashboard),
-      '/create-recipe': () => requireAuth(CreateRecipe)
+      '/create-recipe': () => requireAuth(CreateRecipe),
+      '/admin': () => requireAdmin(AdminPanel)
     };
     
     // Find matching route og kald dens guard
@@ -112,6 +114,37 @@
     currentParams = params;
   }
   
+  function requireAdmin(component, params = {}) {
+    if (authState.isLoading) {
+      // Vent på auth initialization
+      return;
+    }
+    
+    if (!authState.isLoggedIn) {
+      // Vis notification og redirect til login
+      notifications.warning(
+        'You need to be logged in to access this page',
+        'Authentication Required'
+      );
+      router.navigate('/login');
+      return;
+    }
+    
+    if (authState.user?.role !== 'admin') {
+      // Vis notification og redirect non-admin users
+      notifications.error(
+        'You do not have permission to access the admin panel',
+        'Access Denied'
+      );
+      router.navigate('/dashboard');
+      return;
+    }
+    
+    // User er admin - vis siden
+    currentComponent = component;
+    currentParams = params;
+  }
+  
   onMount(() => {
     // Initialiser auth store FØRST
     auth.init();
@@ -148,6 +181,11 @@
       })
       .on('/create-recipe', () => {
         evaluateRoute('/create-recipe');
+      })
+      
+      // Admin routes - kun for admin brugere
+      .on('/admin', () => {
+        evaluateRoute('/admin');
       })
       
       .resolve();

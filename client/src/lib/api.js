@@ -378,6 +378,95 @@ class ApiClient {
   }
 
   // ======================
+  // ADMIN ENDPOINTS  
+  // ======================
+
+  // Hent admin dashboard statistikker
+  async getAdminDashboard() {
+    return await this.request('/admin/dashboard');
+  }
+
+  // Hent alle brugere (admin)
+  async getAdminUsers(page = 1, limit = 20) {
+    return await this.request(`/admin/users?page=${page}&limit=${limit}`);
+  }
+
+  // Blokér/aktivér bruger (admin)
+  async toggleUserStatus(userId, isActive, reason = '') {
+    const requestBody = { isActive };
+    
+    // Kun tilføj reason hvis der er indhold
+    if (reason && reason.trim().length > 0) {
+      requestBody.reason = reason.trim();
+    }
+    
+    return await this.request(`/admin/users/${userId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify(requestBody)
+    });
+  }
+
+  // Slet bruger (admin)
+  async deleteUser(userId, reason = '') {
+    const requestBody = {};
+    
+    // Kun tilføj reason hvis der er indhold
+    if (reason && reason.trim().length > 0) {
+      requestBody.reason = reason.trim();
+    }
+    
+    return await this.request(`/admin/users/${userId}`, {
+      method: 'DELETE',
+      body: JSON.stringify(requestBody)
+    });
+  }
+
+  // Promovér bruger til admin
+  async promoteUserToAdmin(userId, reason = '') {
+    const requestBody = {};
+    
+    // Kun tilføj reason hvis der er indhold
+    if (reason && reason.trim().length > 0) {
+      requestBody.reason = reason.trim();
+    }
+    
+    return await this.request(`/admin/users/${userId}/promote`, {
+      method: 'PUT',
+      body: JSON.stringify(requestBody)
+    });
+  }
+
+  // Slet opskrift (admin)
+  async adminDeleteRecipe(recipeId, reason = '') {
+    const requestBody = {};
+    
+    // Kun tilføj reason hvis der er indhold
+    if (reason && reason.trim().length > 0) {
+      requestBody.reason = reason.trim();
+    }
+    
+    return await this.request(`/admin/recipes/${recipeId}`, {
+      method: 'DELETE',
+      body: JSON.stringify(requestBody)
+    });
+  }
+
+  // Slet kommentar (admin)
+  async adminDeleteComment(commentId, reason = '') {
+    const requestBody = {};
+    
+    // Kun tilføj reason hvis der er indhold
+    if (reason && reason.trim().length > 0) {
+      requestBody.reason = reason.trim();
+    }
+    
+    return await this.request(`/admin/comments/${commentId}`, {
+      method: 'DELETE',
+      body: JSON.stringify(requestBody)
+    });
+  }
+
+  // ======================
   // AUTH HELPERS
   // ======================
 

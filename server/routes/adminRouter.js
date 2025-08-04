@@ -115,6 +115,23 @@ router.put('/users/:id/status', [
     }
 
     const userModel = new UserModel(req.db);
+    
+    // Tjek om target bruger er admin - forbyd admin at blokere andre admins
+    const targetUser = await userModel.findUserById(userId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    if (targetUser.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Admins cannot block or activate other admin accounts'
+      });
+    }
+    
     await userModel.toggleUserStatus(userId, isActive);
 
     console.log(`✅ Admin ${adminId} ${isActive ? 'activated' : 'blocked'} user ${userId}${reason ? ` (${reason})` : ''}`);
@@ -169,6 +186,23 @@ router.delete('/users/:id', [
     }
 
     const userModel = new UserModel(req.db);
+    
+    // Tjek om target bruger er admin - forbyd admin at slette andre admins
+    const targetUser = await userModel.findUserById(userId);
+    if (!targetUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    if (targetUser.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Admins cannot delete other admin accounts'
+      });
+    }
+    
     await userModel.deleteUser(userId);
 
     console.log(`✅ Admin ${adminId} deleted user ${userId}${reason ? ` (${reason})` : ''}`);

@@ -51,6 +51,11 @@
     formErrors = {};
   }
   
+  function handleAdminPanel() {
+    window.location.href = '/#/admin';
+    isOpen = false;
+  }
+  
   function validateForm() {
     formErrors = {};
     
@@ -198,6 +203,17 @@
         >
           Edit Profile
         </button>
+        
+        <!-- Admin Panel - kun vis til admin brugere -->
+        {#if user?.role === 'admin'}
+          <button
+            on:click={handleAdminPanel}
+            class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 hover:text-gray-900"
+          >
+            Admin Panel
+          </button>
+        {/if}
+        
         <button
           on:click={handleLogout}
           class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
