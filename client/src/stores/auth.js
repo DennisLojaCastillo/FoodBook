@@ -151,6 +151,14 @@ function createAuthStore() {
     // Clear error
     clearError() {
       update(state => ({ ...state, error: null }));
+    },
+    
+    // Update user data (efter profil opdatering)
+    updateUser(userData) {
+      update(state => ({ 
+        ...state, 
+        user: userData 
+      }));
     }
   };
 }

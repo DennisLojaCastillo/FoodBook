@@ -104,6 +104,54 @@ class UserModel {
     }
   }
 
+  // Opdater bruger med password (separate metode for sikkerhed)
+  async updateUserWithPassword(id, updateData, currentPassword) {
+    try {
+      const objectId = new ObjectId(id);
+      
+      // Find eksisterende bruger først for at verificere current password
+      const existingUser = await this.collection.findOne({ _id: objectId });
+      if (!existingUser) {
+        throw new Error('User not found');
+      }
+
+      // Verificer nuværende password hvis der er angivet et nyt
+      if (updateData.newPassword) {
+        if (!currentPassword) {
+          throw new Error('Current password is required to change password');
+        }
+        
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, existingUser.password);
+        if (!isCurrentPasswordValid) {
+          throw new Error('Current password is incorrect');
+        }
+        
+        // Hash det nye password
+        const hashedNewPassword = await bcrypt.hash(updateData.newPassword, 12);
+        updateData.password = hashedNewPassword;
+      }
+
+      // Fjern newPassword og currentPassword fra updateData
+      const { newPassword, currentPassword: _, _id, ...safeUpdateData } = updateData;
+      safeUpdateData.updatedAt = new Date();
+
+      const result = await this.collection.updateOne(
+        { _id: objectId },
+        { $set: safeUpdateData }
+      );
+
+      if (result.matchedCount === 0) {
+        throw new Error('User not found');
+      }
+
+      console.log(`✅ User updated with password: ${id}`);
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating user with password:', error);
+      throw error;
+    }
+  }
+
   // Tilføj favorit opskrift
   async addFavorite(userId, recipeId) {
     try {

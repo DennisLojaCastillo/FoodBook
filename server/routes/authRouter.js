@@ -276,13 +276,47 @@ router.put('/profile', verifyToken, [
     .isLength({ min: 2, max: 50 })
     .withMessage('Username must be between 2 and 50 characters')
     .matches(/^[a-zA-Z0-9_-]+$/)
-    .withMessage('Username can only contain letters, numbers, underscore and dash')
+    .withMessage('Username can only contain letters, numbers, underscore and dash'),
+    
+  body('email')
+    .optional()
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Please provide a valid email address'),
+    
+  body('newPassword')
+    .optional()
+    .isLength({ min: 6 })
+    .withMessage('New password must be at least 6 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('New password must contain at least one lowercase letter, one uppercase letter, and one number'),
+    
+  body('currentPassword')
+    .if(body('newPassword').exists())
+    .notEmpty()
+    .withMessage('Current password is required when changing password')
 ], handleValidationErrors, async (req, res) => {
   try {
-    const { username } = req.body;
+    const { username, email, newPassword, currentPassword } = req.body;
     const userModel = new UserModel(req.db);
 
-    await userModel.updateUser(req.userId, { username });
+    // Tjek om email allerede eksisterer (hvis der opdateres email)
+    if (email) {
+      const existingUser = await userModel.findUserByEmail(email);
+      if (existingUser && existingUser._id.toString() !== req.userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email address is already registered'
+        });
+      }
+    }
+
+    // Brug den korrekte update metode baseret på om password ændres
+    if (newPassword) {
+      await userModel.updateUserWithPassword(req.userId, { username, email, newPassword }, currentPassword);
+    } else {
+      await userModel.updateUser(req.userId, { username, email });
+    }
 
     // Hent opdateret bruger
     const updatedUser = await userModel.findUserById(req.userId);
@@ -302,6 +336,20 @@ router.put('/profile', verifyToken, [
       return res.status(404).json({
         success: false,
         message: 'User not found'
+      });
+    }
+    
+    if (error.message === 'Current password is required to change password') {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is required to change password'
+      });
+    }
+    
+    if (error.message === 'Current password is incorrect') {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect'
       });
     }
 
