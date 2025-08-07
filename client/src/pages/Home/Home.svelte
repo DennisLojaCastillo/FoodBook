@@ -223,12 +223,4 @@
     background-color: #4E71FF;
     color: white;
   }
-  
-  .custom-btn-text {
-    color: #4E71FF;
-  }
-  
-  .custom-btn-text:hover {
-    color: #3A5BFF;
-  }
 </style> 

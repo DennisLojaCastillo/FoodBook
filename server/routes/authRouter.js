@@ -76,8 +76,6 @@ router.post('/signup', signupValidation, handleValidationErrors, async (req, res
     const accessToken = generateAccessToken(newUser._id);
     const refreshToken = generateRefreshToken(newUser._id);
 
-    console.log(`✅ New user signed up: ${email}`);
-
     res.status(201).json({
       success: true,
       message: 'User created successfully',
@@ -138,8 +136,6 @@ router.post('/login', loginValidation, handleValidationErrors, async (req, res) 
 
     // Returner bruger uden password
     const { password: _, ...userWithoutPassword } = user;
-
-    console.log(`✅ User logged in: ${email}`);
 
     res.json({
       success: true,
@@ -412,7 +408,6 @@ router.get('/my-recipes', verifyToken, async (req, res) => {
 // POST /api/auth/logout - Log ud (placeholder - tokens håndteres client-side)
 router.post('/logout', verifyToken, (req, res) => {
   // I en production app ville vi blackliste refresh token her
-  console.log(`✅ User logged out: ${req.userId}`);
   
   res.json({
     success: true,

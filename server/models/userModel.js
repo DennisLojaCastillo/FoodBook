@@ -40,7 +40,6 @@ class UserModel {
       const { password: _, ...userWithoutPassword } = newUser;
       userWithoutPassword._id = result.insertedId;
       
-      console.log(`✅ User created: ${email}`);
       return userWithoutPassword;
 
     } catch (error) {
@@ -96,7 +95,6 @@ class UserModel {
         throw new Error('User not found');
       }
 
-      console.log(`✅ User updated: ${id}`);
       return result;
     } catch (error) {
       console.error('❌ Error updating user:', error);
@@ -144,7 +142,6 @@ class UserModel {
         throw new Error('User not found');
       }
 
-      console.log(`✅ User updated with password: ${id}`);
       return result;
     } catch (error) {
       console.error('❌ Error updating user with password:', error);
@@ -179,7 +176,6 @@ class UserModel {
         throw new Error('User not found');
       }
 
-      console.log(`✅ Favorite added: ${recipeId} to user ${userId}`);
       return result;
     } catch (error) {
       console.error('❌ Error adding favorite:', error);
@@ -204,7 +200,6 @@ class UserModel {
         throw new Error('User not found');
       }
 
-      console.log(`✅ Favorite removed: ${recipeId} from user ${userId}`);
       return result;
     } catch (error) {
       console.error('❌ Error removing favorite:', error);
@@ -271,8 +266,6 @@ class UserModel {
       .sort({ savedAt: -1 })
       .toArray();
 
-      console.log(`✅ Fetched complete profile for user ${userId}: ${userRecipes.length} recipes, ${localFavorites.length} local favorites, ${externalFavorites.length} external favorites`);
-
       return {
         ...userWithoutPassword,
         myRecipes: userRecipes,
@@ -319,8 +312,6 @@ class UserModel {
 
       const totalCount = await this.collection.countDocuments({ isDeleted: { $ne: true } });
 
-      console.log(`✅ Fetched ${users.length} users for admin (page ${page})`);
-
       return {
         users,
         pagination: {
@@ -357,7 +348,6 @@ class UserModel {
         throw new Error('User not found');
       }
 
-      console.log(`✅ User ${userId} ${isActive ? 'activated' : 'blocked'}`);
       return result;
 
     } catch (error) {
@@ -387,7 +377,6 @@ class UserModel {
         throw new Error('User not found');
       }
 
-      console.log(`✅ User ${userId} soft deleted`);
       return result;
 
     } catch (error) {
@@ -415,7 +404,6 @@ class UserModel {
         throw new Error('User not found');
       }
 
-      console.log(`✅ User ${userId} promoted to admin`);
       return result;
 
     } catch (error) {
@@ -444,8 +432,6 @@ class UserModel {
         createdAt: { $gte: today },
         isDeleted: { $ne: true }
       });
-
-      console.log(`✅ Admin dashboard stats generated`);
 
       return {
         totalUsers,

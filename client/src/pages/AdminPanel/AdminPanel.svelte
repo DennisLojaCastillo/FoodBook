@@ -152,6 +152,9 @@
       // Reload users to reflect changes
       await loadUsers(currentUsersPage);
       
+      // Also reload dashboard to update statistics
+      await loadDashboard();
+      
     } catch (error) {
       console.error('User action error:', error);
       
@@ -289,7 +292,7 @@
                 </div>
                 <div class="ml-5 w-0 flex-1">
                   <dl>
-                    <dt class="text-sm font-medium text-gray-500 truncate">Total Recipes</dt>
+                    <dt class="text-sm font-medium text-gray-500 truncate">Total Local Recipes</dt>
                     <dd class="text-lg font-medium text-gray-900">{dashboardData.totalRecipes || 0}</dd>
                   </dl>
                 </div>
@@ -347,16 +350,13 @@
                   <li>• Active Users: {dashboardData.activeUsers || 0}</li>
                   <li>• Blocked Users: {dashboardData.blockedUsers || 0}</li>
                   <li>• Admins: {dashboardData.adminUsers || 0}</li>
-                  <li>• New Users Today: {dashboardData.newUsersToday || 0}</li>
                 </ul>
               </div>
               <div>
                 <h4 class="font-medium text-gray-900 mb-2">Content Statistics</h4>
                 <ul class="space-y-2 text-sm text-gray-600">
-                  <li>• Total Recipes: {dashboardData.totalRecipes || 0}</li>
+                  <li>• Total Local Recipes: {dashboardData.totalRecipes || 0}</li>
                   <li>• Total Comments: {dashboardData.totalComments || 0}</li>
-                  <li>• New Recipes Today: {dashboardData.newRecipesToday || 0}</li>
-                  <li>• New Comments Today: {dashboardData.newCommentsToday || 0}</li>
                 </ul>
               </div>
             </div>

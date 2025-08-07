@@ -58,7 +58,6 @@ class RecipeModel {
       // Returner opskrift med generated ID
       newRecipe._id = result.insertedId;
       
-      console.log(`✅ Unified recipe created: ${title} by user ${createdBy}`);
       return newRecipe;
 
     } catch (error) {
@@ -117,8 +116,6 @@ class RecipeModel {
 
       // Få total count for pagination
       const totalCount = await this.collection.countDocuments();
-      
-      console.log(`✅ Fetched ${recipes.length} recipes (page ${page})`);
       
       return {
         recipes,
@@ -182,7 +179,6 @@ class RecipeModel {
         return null;
       }
 
-      console.log(`✅ Fetched recipe: ${recipe[0].title}`);
       return recipe[0];
 
     } catch (error) {
@@ -253,7 +249,6 @@ class RecipeModel {
         throw new Error('Recipe not found');
       }
 
-      console.log(`✅ Recipe updated: ${id} by user ${userId}`);
       return result;
 
     } catch (error) {
@@ -278,7 +273,6 @@ class RecipeModel {
         throw new Error('Recipe not found or access denied');
       }
 
-      console.log(`✅ Recipe deleted: ${id} by user ${userId}`);
       return result;
 
     } catch (error) {
@@ -298,7 +292,6 @@ class RecipeModel {
       .sort({ createdAt: -1 })
       .toArray();
 
-      console.log(`✅ Fetched ${recipes.length} recipes for user ${userId}`);
       return recipes;
 
     } catch (error) {
@@ -324,7 +317,6 @@ class RecipeModel {
         throw new Error('Recipe not found');
       }
 
-      console.log(`✅ Favorite count incremented for recipe: ${recipeId}`);
       return result;
 
     } catch (error) {
@@ -350,7 +342,6 @@ class RecipeModel {
         throw new Error('Recipe not found');
       }
 
-      console.log(`✅ Favorite count decremented for recipe: ${recipeId}`);
       return result;
 
     } catch (error) {
@@ -410,7 +401,6 @@ class RecipeModel {
         }
       ]).toArray();
 
-      console.log(`✅ Search found ${recipes.length} recipes for query: "${query}"`);
       return recipes;
 
     } catch (error) {

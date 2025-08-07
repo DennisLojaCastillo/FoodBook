@@ -11,7 +11,6 @@ const __dirname = path.dirname(__filename);
 const uploadsDir = path.join(__dirname, '../uploads/recipes');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log('📁 Created uploads directory:', uploadsDir);
 }
 
 // Konfigurer multer storage
@@ -37,10 +36,8 @@ const fileFilter = (req, file, cb) => {
   const mimetype = allowedTypes.test(file.mimetype);
 
   if (extname && mimetype) {
-    console.log(`✅ Valid image uploaded: ${file.originalname}`);
     cb(null, true);
   } else {
-    console.log(`❌ Invalid file type: ${file.originalname}`);
     cb(new Error('Only image files (JPEG, JPG, PNG, GIF, WebP) are allowed!'));
   }
 };

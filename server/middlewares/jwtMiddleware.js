@@ -153,15 +153,11 @@ const verifyAdmin = async (req, res, next) => {
 
     // Tjek om bruger har admin rolle
     if (user.role !== 'admin') {
-      console.log(`❌ Non-admin user ${req.userId} attempted admin access: ${req.method} ${req.originalUrl}`);
       return res.status(403).json({
         success: false,
         message: 'Admin access required. This incident will be logged.'
       });
     }
-
-    // Log admin access for audit trail
-    console.log(`✅ Admin ${req.userId} (${user.username}) accessing: ${req.method} ${req.originalUrl}`);
 
     // Tilføj user data til request for brug i admin endpoints
     req.user = user;

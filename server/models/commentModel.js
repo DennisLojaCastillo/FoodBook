@@ -23,7 +23,6 @@ class CommentModel {
       // Returner kommentar med generated ID
       newComment._id = result.insertedId;
       
-      console.log(`✅ Comment created for recipe ${recipeId} by user ${createdBy}`);
       return newComment;
 
     } catch (error) {
@@ -67,7 +66,6 @@ class CommentModel {
         }
       ]).toArray();
 
-      console.log(`✅ Fetched ${comments.length} comments for recipe ${recipeId}`);
       return comments;
 
     } catch (error) {
@@ -108,7 +106,6 @@ class CommentModel {
         throw new Error('Comment not found');
       }
 
-      console.log(`✅ Comment updated: ${id} by user ${userId}`);
       return result;
 
     } catch (error) {
@@ -133,7 +130,6 @@ class CommentModel {
         throw new Error('Comment not found or access denied');
       }
 
-      console.log(`✅ Comment deleted: ${id} by user ${userId}`);
       return result;
 
     } catch (error) {
@@ -151,7 +147,6 @@ class CommentModel {
         recipeId: recipeObjectId
       });
 
-      console.log(`✅ Deleted ${result.deletedCount} comments for recipe ${recipeId}`);
       return result;
 
     } catch (error) {
@@ -193,7 +188,6 @@ class CommentModel {
         }
       ]).toArray();
 
-      console.log(`✅ Fetched ${comments.length} comments from user ${userId}`);
       return comments;
 
     } catch (error) {
@@ -263,7 +257,6 @@ class CommentModel {
         }
       ]).toArray();
 
-      console.log(`✅ Fetched ${comments.length} recent comments`);
       return comments;
 
     } catch (error) {

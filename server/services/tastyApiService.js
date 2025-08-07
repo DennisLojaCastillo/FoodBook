@@ -26,14 +26,8 @@ class TastyApiService {
       const cachedData = cache.get(cacheKey);
       
       if (cachedData) {
-        console.log(`✅ Cache hit for: ${endpoint}`);
         return cachedData;
       }
-
-      console.log(`🌐 API call to: ${endpoint}`);
-      console.log(`🔑 Using API Key: ${this.apiKey?.substring(0, 10)}...`);
-      console.log(`🏠 Using Host: ${this.apiHost}`);
-      console.log(`📍 Full URL: ${url}`);
 
       const options = {
         method: 'GET',
@@ -43,13 +37,10 @@ class TastyApiService {
         }
       };
 
-      console.log(`📋 Request headers:`, options.headers);
-
       const data = await this.httpRequest(url, options);
       
       // Cache resultatet
       cache.set(cacheKey, data);
-      console.log(`💾 Cached result for: ${endpoint}`);
       
       return data;
 
@@ -101,7 +92,6 @@ class TastyApiService {
         q: query
       };
 
-      console.log(`🔍 Calling Tasty API with params:`, params);
       const response = await this.makeRequest(endpoint, params);
       
       // Transform data til vores format
@@ -236,7 +226,6 @@ class TastyApiService {
   // Ryd cache
   clearCache() {
     cache.flushAll();
-    console.log('🗑️ Tasty API cache cleared');
   }
 }
 

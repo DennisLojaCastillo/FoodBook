@@ -79,7 +79,7 @@
   }
 </script>
 
-<article 
+<div 
   class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer group"
   on:click={handleClick}
   on:keydown={(e) => e.key === 'Enter' && handleClick()}
@@ -174,4 +174,4 @@
       </div>
     </div>
   </div>
-</article> 
+</div> 

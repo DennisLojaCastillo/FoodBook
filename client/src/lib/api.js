@@ -260,10 +260,44 @@ class ApiClient {
 
   // Opdater opskrift
   async updateRecipe(id, recipeData) {
-    return await this.request(`/recipes/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(recipeData),
-    });
+    // Check if there's a file to upload (same logic as createRecipe)
+    if (recipeData.thumbnail instanceof File) {
+      // Use FormData for multipart upload
+      const formData = new FormData();
+      
+      // Add file
+      formData.append('thumbnail', recipeData.thumbnail);
+      
+      // Add other fields (arrays need to be JSON stringified for multipart)
+      formData.append('title', recipeData.title);
+      formData.append('description', recipeData.description);
+      formData.append('ingredients', JSON.stringify(recipeData.ingredients));
+      formData.append('instructions', JSON.stringify(recipeData.instructions));
+      
+      // Optional fields
+      if (recipeData.servings) formData.append('servings', recipeData.servings.toString());
+      if (recipeData.totalTimeCookingMinutes) formData.append('totalTimeCookingMinutes', recipeData.totalTimeCookingMinutes.toString());
+      if (recipeData.tags && recipeData.tags.length > 0) formData.append('tags', JSON.stringify(recipeData.tags));
+      if (recipeData.videoUrl) formData.append('videoUrl', recipeData.videoUrl);
+      if (recipeData.nutrition) formData.append('nutrition', JSON.stringify(recipeData.nutrition));
+      
+      // Make request with FormData (don't set Content-Type, browser will set it with boundary)
+      const response = await fetch(`${this.baseURL}/recipes/${id}`, {
+        method: 'PUT',
+        headers: {
+          ...this.getAuthHeaders(false), // Don't include Content-Type for FormData
+        },
+        body: formData,
+      });
+      
+      return await this.handleResponse(response);
+    } else {
+      // No file upload, use regular JSON
+      return await this.request(`/recipes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(recipeData),
+      });
+    }
   }
 
   // Slet opskrift
@@ -296,6 +330,14 @@ class ApiClient {
   async addComment(recipeId, comment) {
     return await this.request(`/recipes/${recipeId}/comment`, {
       method: 'POST',
+      body: JSON.stringify({ text: comment }),
+    });
+  }
+
+  // Opdater kommentar (kun ejeren)
+  async updateComment(commentId, comment) {
+    return await this.request(`/recipes/comments/${commentId}`, {
+      method: 'PUT',
       body: JSON.stringify({ text: comment }),
     });
   }
@@ -465,10 +507,6 @@ class ApiClient {
       body: JSON.stringify(requestBody)
     });
   }
-
-  // ======================
-  // AUTH HELPERS
-  // ======================
 
   // Tjek om bruger er logged ind
   isAuthenticated() {

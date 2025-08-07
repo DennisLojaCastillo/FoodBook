@@ -23,6 +23,11 @@
   let newComment = '';
   let commentLoading = false;
   let commentsSection;
+  
+  // Comment editing
+  let editingCommentId = null;
+  let editingCommentText = '';
+  let editCommentLoading = false;
 
   onMount(async () => {
     if (params.id) {
@@ -168,6 +173,64 @@
     }
   }
   
+  // Start editing a comment
+  function startEditComment(comment) {
+    editingCommentId = comment._id;
+    editingCommentText = comment.text;
+  }
+  
+  // Cancel editing a comment
+  function cancelEditComment() {
+    editingCommentId = null;
+    editingCommentText = '';
+  }
+  
+  // Update a comment (kun ejeren eller admin)
+  async function handleUpdateComment() {
+    if (!editingCommentText.trim()) return;
+    
+    try {
+      editCommentLoading = true;
+      
+      const response = await api.updateComment(editingCommentId, editingCommentText.trim());
+      
+      if (response.success) {
+        // Update comment in the list
+        comments = comments.map(comment => 
+          comment._id === editingCommentId 
+            ? { ...comment, text: editingCommentText.trim() }
+            : comment
+        );
+        
+        // Reset editing state
+        editingCommentId = null;
+        editingCommentText = '';
+        
+        notifications.success(
+          'Comment updated successfully',
+          'Comment Updated'
+        );
+      }
+      
+    } catch (err) {
+      console.error('Failed to update comment:', err);
+      
+      if (err.message?.includes('not found or access denied')) {
+        notifications.error(
+          'You can only edit your own comments',
+          'Access Denied'
+        );
+      } else {
+        notifications.error(
+          err.message || 'Failed to update comment. Please try again.',
+          'Error Updating Comment'
+        );
+      }
+    } finally {
+      editCommentLoading = false;
+    }
+  }
+
   // Delete a comment (kun ejeren eller admin)
   async function handleDeleteComment(commentId, commentAuthorId) {
     const confirmed = await confirmDelete('this comment');
@@ -218,6 +281,72 @@
     if (currentUser.role === 'admin') return true;
     
     return false;
+  }
+  
+  // Check if current user can delete this recipe (owner or admin)
+  function canDeleteRecipe() {
+    const currentUser = $auth.user;
+    if (!currentUser || !recipe) return false;
+    
+    // User can delete their own recipe
+    if (currentUser._id === recipe.author?._id) return true;
+    
+    // Admin can delete any recipe
+    if (currentUser.role === 'admin') return true;
+    
+    return false;
+  }
+  
+  // Check if current user can edit this recipe (owner or admin)
+  function canEditRecipe() {
+    const currentUser = $auth.user;
+    if (!currentUser || !recipe) return false;
+    
+    // User can edit their own recipe
+    if (currentUser._id === recipe.author?._id) return true;
+    
+    // Admin can edit any recipe
+    if (currentUser.role === 'admin') return true;
+    
+    return false;
+  }
+  
+  // Delete recipe (kun ejeren eller admin)
+  async function handleDeleteRecipe() {
+    const confirmed = await confirmDelete(`the recipe "${recipe.title}"`);
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    try {
+      const response = await api.deleteRecipe(params.id);
+      
+      if (response.success) {
+        notifications.success(
+          `Recipe "${recipe.title}" deleted successfully`,
+          'Recipe Deleted'
+        );
+        
+        // Redirect to recipes page
+        window.location.href = '/#/recipes';
+      }
+      
+    } catch (err) {
+      console.error('Failed to delete recipe:', err);
+      
+      if (err.message?.includes('not found or access denied')) {
+        notifications.error(
+          'You can only delete your own recipes',
+          'Access Denied'
+        );
+      } else {
+        notifications.error(
+          err.message || 'Failed to delete recipe. Please try again.',
+          'Error Deleting Recipe'
+        );
+      }
+    }
   }
   
   // Toggle external recipe favorite status
@@ -405,14 +534,26 @@
         <div class="flex items-start justify-between mb-4">
           <h1 class="text-3xl font-bold text-gray-900 flex-1">{recipe.title}</h1>
           
-          {#if isExternalRecipe}
-            <div class="ml-4 flex-shrink-0">
+          <div class="ml-4 flex-shrink-0 flex items-center gap-3">
+            {#if isExternalRecipe}
               <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-green-100 text-green-800">
                 <span class="mr-1">🌍</span>
                 EXTERNAL RECIPE
               </span>
-            </div>
-          {/if}
+            {:else}
+              <!-- Edit Recipe Button for local recipes (kun for recipe author eller admin) -->
+              {#if canEditRecipe()}
+                <button 
+                  on:click={() => window.location.href = `/#/edit-recipe/${params.id}`}
+                  class="inline-flex items-center px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                  title="Edit Recipe"
+                >
+                  <span class="mr-1">✏️</span>
+                  Edit
+                </button>
+              {/if}
+            {/if}
+          </div>
         </div>
         
         <p class="text-gray-600 text-lg leading-relaxed mb-6">{recipe.description}</p>
@@ -635,6 +776,18 @@
                 <span class="mr-2">💬</span>
                 View Comments ({comments.length})
               </button>
+              
+              <!-- Delete Recipe Button (kun for recipe author eller admin) -->
+              {#if canDeleteRecipe()}
+                <button 
+                  on:click={handleDeleteRecipe}
+                  class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+                  title="Delete Recipe"
+                >
+                  <span class="mr-2">🗑️</span>
+                  Delete Recipe
+                </button>
+              {/if}
             {/if}
             
           </div>
@@ -709,18 +862,31 @@
             <div class="space-y-4">
               {#each comments as comment (comment._id)}
                 <div class="bg-white rounded-lg p-4 border hover:border-gray-300 transition-colors relative">
-                  <!-- Delete X button (kun for comment owner eller admin) - oppe i hjørnet -->
+                  <!-- Action buttons (kun for comment owner eller admin) -->
                   {#if canDeleteComment(comment.author?._id)}
-                    <button
-                      on:click={() => handleDeleteComment(comment._id, comment.author?._id)}
-                      class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors text-sm"
-                      title="Delete comment"
-                    >
-                      ✕
-                    </button>
+                    <div class="absolute top-2 right-2 flex items-center gap-1">
+                      <!-- Edit button -->
+                      <button
+                        on:click={() => startEditComment(comment)}
+                        class="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors text-sm"
+                        title="Edit comment"
+                        disabled={editingCommentId !== null}
+                      >
+                        ✏️
+                      </button>
+                      <!-- Delete button -->
+                      <button
+                        on:click={() => handleDeleteComment(comment._id, comment.author?._id)}
+                        class="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors text-sm"
+                        title="Delete comment"
+                        disabled={editingCommentId !== null}
+                      >
+                        ✕
+                      </button>
+                    </div>
                   {/if}
                   
-                  <div class="flex items-start gap-3 pr-8">
+                  <div class="flex items-start gap-3 pr-16">
                     <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                       <span class="text-sm font-semibold text-blue-600">
                         {comment.author?.username?.charAt(0).toUpperCase() || '?'}
@@ -737,9 +903,41 @@
                         </span>
                       </div>
                       
-                      <p class="text-gray-700 leading-relaxed">
-                        {comment.text}
-                      </p>
+                      {#if editingCommentId === comment._id}
+                        <!-- Edit mode -->
+                        <div class="space-y-3">
+                          <textarea
+                            bind:value={editingCommentText}
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            rows="2"
+                            maxlength="500"
+                          ></textarea>
+                          <div class="text-xs text-gray-500">
+                            {editingCommentText.length}/500 characters
+                          </div>
+                          <div class="flex items-center gap-2">
+                            <button
+                              on:click={handleUpdateComment}
+                              disabled={editCommentLoading || !editingCommentText.trim()}
+                              class="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                            >
+                              {editCommentLoading ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              on:click={cancelEditComment}
+                              disabled={editCommentLoading}
+                              class="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      {:else}
+                        <!-- View mode -->
+                        <p class="text-gray-700 leading-relaxed">
+                          {comment.text}
+                        </p>
+                      {/if}
                     </div>
                   </div>
                 </div>

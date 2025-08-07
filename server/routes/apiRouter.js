@@ -105,8 +105,6 @@ router.get('/search', [
     const from = parseInt(req.query.from) || 0;
     const size = parseInt(req.query.size) || 20;
 
-    console.log(`🔍 External API search: "${query}" (from: ${from}, size: ${size})`);
-
     const results = await tastyApiService.searchRecipes(query, from, size);
 
     res.json({
@@ -141,8 +139,6 @@ router.get('/external/recipe/:id', [
 ], async (req, res) => {
   try {
     const { id } = req.params;
-
-    console.log(`📖 Getting external recipe details: ${id}`);
 
     const recipe = await tastyApiService.getRecipeDetails(id);
 
@@ -308,8 +304,6 @@ router.post('/external/favorite', verifyToken, [
     // Tilføj til brugerens favoritter (external format)
     await userModel.addFavorite(userId, `external_${externalId}`);
 
-    console.log(`✅ External recipe saved as favorite: ${title} by user ${userId}`);
-
     // Emit Socket.io event
     if (req.io) {
       req.io.emit('externalFavoriteAdded', {
@@ -358,8 +352,6 @@ router.delete('/external/favorite/:id', verifyToken, async (req, res) => {
 
     // Fjern fra brugerens favoritter
     await userModel.removeFavorite(userId, `external_${externalId}`);
-
-    console.log(`✅ External favorite removed: ${externalId} by user ${userId}`);
 
     // Emit Socket.io event
     if (req.io) {

@@ -259,7 +259,6 @@ router.post('/', verifyToken, uploadRecipeImage, handleUploadError, async (req, 
     let thumbnailUrl = null;
     if (req.file) {
       thumbnailUrl = generateImageUrl(req, req.file.filename);
-      console.log(`📸 Image uploaded: ${req.file.filename}`);
     }
 
     // Extract recipe data (unified structure)
@@ -347,8 +346,6 @@ router.post('/', verifyToken, uploadRecipeImage, handleUploadError, async (req, 
       createdBy
     });
 
-    console.log(`✅ New unified recipe created: ${title} by user ${createdBy}`);
-
     // Emit Socket.io event for real-time opdatering
     if (req.io) {
       req.io.emit('newRecipe', {
@@ -373,7 +370,7 @@ router.post('/', verifyToken, uploadRecipeImage, handleUploadError, async (req, 
       const fs = await import('fs/promises');
       try {
         await fs.unlink(req.file.path);
-        console.log(`🗑️ Cleaned up failed upload: ${req.file.filename}`);
+        // Cleaned up failed upload
       } catch (cleanupError) {
         console.error('❌ Failed to cleanup file:', cleanupError);
       }
@@ -646,8 +643,6 @@ router.post('/:id/comment', verifyToken, [
     // Hent kommentar med author info
     const comments = await commentModel.getCommentsByRecipe(recipeId);
     const commentWithAuthor = comments.find(c => c._id.toString() === newComment._id.toString());
-
-    console.log(`✅ New comment added to recipe ${recipeId} by user ${createdBy}`);
 
     // Emit Socket.io event for real-time opdatering
     if (req.io) {

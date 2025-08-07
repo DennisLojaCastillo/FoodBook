@@ -16,7 +16,7 @@ const optionalEnvVars = [
 ];
 
 const validateEnvironmentVariables = () => {
-  console.log('🔍 Validating environment variables...');
+  // Validating environment variables
   
   const missing = [];
   const warnings = [];
@@ -25,8 +25,6 @@ const validateEnvironmentVariables = () => {
   requiredEnvVars.forEach(envVar => {
     if (!process.env[envVar]) {
       missing.push(envVar);
-    } else {
-      console.log(`✅ ${envVar}: ${envVar.includes('SECRET') || envVar.includes('KEY') ? '***' : process.env[envVar]}`);
     }
   });
   
@@ -34,17 +32,12 @@ const validateEnvironmentVariables = () => {
   optionalEnvVars.forEach(envVar => {
     if (!process.env[envVar]) {
       warnings.push(envVar);
-    } else {
-      console.log(`✅ ${envVar}: ${process.env[envVar]}`);
     }
   });
   
   // Report warnings
   if (warnings.length > 0) {
-    console.log(`⚠️  Optional environment variables missing (using defaults):`);
-    warnings.forEach(envVar => {
-      console.log(`   - ${envVar}`);
-    });
+    // Optional environment variables missing (using defaults)
   }
   
   // Handle missing required variables
@@ -61,7 +54,7 @@ const validateEnvironmentVariables = () => {
   // Validate specific formats
   validateSpecificFormats();
   
-  console.log('✅ All required environment variables validated successfully!');
+  // All required environment variables validated successfully
 };
 
 const validateSpecificFormats = () => {

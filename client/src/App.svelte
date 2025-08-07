@@ -17,6 +17,7 @@
   import Dashboard from './pages/Dashboard/Dashboard.svelte';
   import Recipes from './pages/Recipes/Recipes.svelte';
   import CreateRecipe from './pages/CreateRecipe/CreateRecipe.svelte';
+  import EditRecipe from './pages/EditRecipe/EditRecipe.svelte';
   import RecipeDetail from './pages/RecipeDetail/RecipeDetail.svelte';
   import AdminPanel from './pages/AdminPanel/AdminPanel.svelte';
   
@@ -54,12 +55,14 @@
       '/signup': () => requireGuest(Signup),
       '/dashboard': () => requireAuth(Dashboard),
       '/create-recipe': () => requireAuth(CreateRecipe),
+      '/edit-recipe/:id': () => requireAuth(EditRecipe, params),
       '/admin': () => requireAdmin(AdminPanel)
     };
     
     // Find matching route og kald dens guard
     const routeHandler = routes[route] || 
       (route.startsWith('/recipe/external/') ? routes['/recipe/external/:id'] : null) ||
+      (route.startsWith('/edit-recipe/') ? routes['/edit-recipe/:id'] : null) ||
       (route.startsWith('/recipe/') ? routes['/recipe/:id'] : null);
     if (routeHandler) {
       routeHandler();
@@ -182,6 +185,9 @@
       })
       .on('/create-recipe', () => {
         evaluateRoute('/create-recipe');
+      })
+      .on('/edit-recipe/:id', (match) => {
+        evaluateRoute('/edit-recipe/:id', { id: match.data.id });
       })
       
       // Admin routes - kun for admin brugere

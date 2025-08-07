@@ -132,8 +132,7 @@ async function startServer() {
 
     // Start server after database connection
     server.listen(PORT, () => {
-      console.log(`🚀 FoodBook API server running on port ${PORT}`);
-      console.log(`📡 Socket.io enabled on port ${PORT}`);
+      // Server started successfully
     });
 
   } catch (error) {
@@ -144,16 +143,15 @@ async function startServer() {
 
 // Socket.io connection handling
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  // User connected
   
   // Join user-specific room when authenticated
   socket.on('join-user-room', (userId) => {
     socket.join(`user-${userId}`);
-    console.log(`User ${userId} joined room`);
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    // User disconnected
   });
 });
 

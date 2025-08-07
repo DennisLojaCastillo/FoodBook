@@ -34,8 +34,6 @@ router.get('/users', [
     const userModel = new UserModel(req.db);
     const result = await userModel.getAllUsers(page, limit);
 
-    console.log(`✅ Admin ${req.userId} fetched users (page ${page})`);
-
     res.json({
       success: true,
       data: result
@@ -73,8 +71,6 @@ router.get('/dashboard', async (req, res) => {
         fetchedAt: new Date()
       }
     };
-
-    console.log(`✅ Admin ${req.userId} accessed dashboard`);
 
     res.json({
       success: true,
@@ -133,8 +129,6 @@ router.put('/users/:id/status', [
     }
     
     await userModel.toggleUserStatus(userId, isActive);
-
-    console.log(`✅ Admin ${adminId} ${isActive ? 'activated' : 'blocked'} user ${userId}${reason ? ` (${reason})` : ''}`);
 
     res.json({
       success: true,
@@ -205,8 +199,6 @@ router.delete('/users/:id', [
     
     await userModel.deleteUser(userId);
 
-    console.log(`✅ Admin ${adminId} deleted user ${userId}${reason ? ` (${reason})` : ''}`);
-
     res.json({
       success: true,
       message: 'User deleted successfully',
@@ -249,8 +241,6 @@ router.put('/users/:id/promote', [
 
     const userModel = new UserModel(req.db);
     await userModel.promoteToAdmin(userId);
-
-    console.log(`✅ Admin ${adminId} promoted user ${userId} to admin${reason ? ` (${reason})` : ''}`);
 
     res.json({
       success: true,
@@ -314,8 +304,6 @@ router.delete('/recipes/:id', [
     // Slet opskriften (admin override - direct database call)
     await recipeModel.collection.deleteOne({ _id: recipe._id });
 
-    console.log(`✅ Admin ${adminId} deleted recipe ${recipeId} (${recipe.title})${reason ? ` (${reason})` : ''}`);
-
     // Emit Socket.io event
     if (req.io) {
       req.io.emit('adminRecipeDeleted', {
@@ -373,8 +361,6 @@ router.delete('/comments/:id', [
 
     // Admin kan slette enhver kommentar (override ownership check)
     await commentModel.collection.deleteOne({ _id: comment._id });
-
-    console.log(`✅ Admin ${adminId} deleted comment ${commentId}${reason ? ` (${reason})` : ''}`);
 
     // Emit Socket.io event
     if (req.io) {

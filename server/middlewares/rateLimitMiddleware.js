@@ -12,7 +12,6 @@ export const apiLimit = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   handler: (req, res) => {
-    console.log(`⚠️ Rate limit exceeded for IP: ${req.ip}`);
     res.status(429).json({
       success: false,
       message: 'Too many requests from this IP, please try again later.',
@@ -33,7 +32,6 @@ export const externalApiLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    console.log(`⚠️ External API rate limit exceeded for IP: ${req.ip}`);
     res.status(429).json({
       success: false,
       message: 'Too many external API requests, please slow down.',
@@ -55,7 +53,6 @@ export const authLimit = rateLimit({
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Tæl kun failed requests
   handler: (req, res) => {
-    console.log(`⚠️ Auth rate limit exceeded for IP: ${req.ip}`);
     res.status(429).json({
       success: false,
       message: 'Too many authentication attempts, please try again later.',
@@ -76,7 +73,6 @@ export const recipeCreateLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    console.log(`⚠️ Recipe creation rate limit exceeded for IP: ${req.ip}`);
     res.status(429).json({
       success: false,
       message: 'Too many recipes created, please slow down.',
@@ -97,7 +93,6 @@ export const commentLimit = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
-    console.log(`⚠️ Comment rate limit exceeded for IP: ${req.ip}`);
     res.status(429).json({
       success: false,
       message: 'Too many comments posted, please slow down.',
