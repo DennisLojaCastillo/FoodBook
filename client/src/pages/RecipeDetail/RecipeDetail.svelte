@@ -3,6 +3,7 @@
   import api from '../../lib/api.js';
   import { notifications } from '../../stores/notifications.js';
   import { auth } from '../../stores/auth.js';
+  import { confirmDelete } from '../../lib/modalHelpers.js';
   
   export let params = {}; // Router sends recipe ID here
   
@@ -169,7 +170,9 @@
   
   // Delete a comment (kun ejeren eller admin)
   async function handleDeleteComment(commentId, commentAuthorId) {
-    if (!confirm('Are you sure you want to delete this comment?')) {
+    const confirmed = await confirmDelete('this comment');
+    
+    if (!confirmed) {
       return;
     }
     

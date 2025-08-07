@@ -8,6 +8,7 @@
   import Header from './components/Header.svelte';
   import Footer from './components/Footer.svelte';
   import Notifications from './components/Notifications.svelte';
+  import Modal from './components/Modal.svelte';
   
   // Import pages  
   import Home from './pages/Home/Home.svelte';
@@ -215,6 +216,9 @@
   
   <!-- Notifications -->
   <Notifications />
+  
+  <!-- Modal -->
+  <Modal />
 </div>
 
 <style>
